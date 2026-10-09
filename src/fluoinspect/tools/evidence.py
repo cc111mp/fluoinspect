@@ -41,6 +41,20 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
     metrics = record["metrics"]
     if metrics.get("source_shape_yx") != info["shape_yx"]:
         raise ValueError("Metric geometry disagrees with the source")
+    brightness = record.get("brightness_patterns")
+    if brightness is not None and (
+        not isinstance(brightness, dict)
+        or brightness.get("schema") != "fluoinspect.brightness-patterns.v1"
+        or brightness.get("source_shape_yx") != info["shape_yx"]
+        or brightness.get("source_region_level0_xyxy") != [0, 0, info["shape_yx"][1], info["shape_yx"][0]]
+        or brightness.get("assessment") != "experimental_measurements_only"
+        or brightness.get("artifact_accuracy_validated") is not False
+        or brightness.get("source_pixels_modified") is not False
+        or brightness.get("quality_decision") is not None
+        or brightness.get("configuration") != record.get("measurement_configuration", {}).get("brightness_patterns", {}).get("configuration")
+        or brightness.get("engine_id") != record.get("measurement_configuration", {}).get("brightness_patterns", {}).get("engine_id")
+    ):
+        raise ValueError("Brightness measurement scope disagrees with the source or its interpretation")
     return {
         "record_sha256": checksum, "asset_id": record["asset_id"], "run_identity": record["run_identity"],
         "measurement_configuration": record.get("measurement_configuration"),
@@ -51,6 +65,7 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         "largest_same_position_support": max((v["exact_rows"] for v in record["lines"]), default=0),
         "raw": metrics["raw"], "relative_detail": metrics["detail_summary"],
         "background_summary": {k: v for k, v in metrics["background"].items() if k != "cells"},
+        "brightness_patterns": brightness,
         "caveats": metrics["caveats"], "artifact_detection_accuracy_validated": False,
     }
 

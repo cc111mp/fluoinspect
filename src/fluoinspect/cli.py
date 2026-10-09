@@ -8,7 +8,7 @@ def main():
     if len(sys.argv) == 1 or sys.argv[1] in {"-h", "--help"}:
         print("FluoInspect: fluorescence and autofluorescence QC\n"
               "Usage: fluoinspect {measure,inspect,packet,deploy} [options]\n"
-              "  measure  Native intensity, detail, background and axial-pattern evidence\n"
+              "  measure  Native intensity, detail, background, axial and experimental brightness evidence\n"
               "  inspect  Create sessions, request views, audit or validate reports\n"
               "  packet   Prepare verified views and source-bound measurements\n"
               "  deploy   Plan node assignments or check local runtime configuration")

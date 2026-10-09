@@ -14,6 +14,14 @@ the same dataset group. Report recall, false flags, localization, confidence
 intervals and failures separately by artifact type and severity. Calibration
 and instrument metadata are required for physical-unit claims.
 
+For brightness-pattern measurements, additionally vary the supplied period, cycle
+coverage, region boundaries, sampling resolution and natural texture. Within-image
+cycle prediction is a consistency measure, not an independent image-level test.
+Numerical tests allow documented floating-point tolerance under axis transposition.
+Period selection, biological confounds and artifact thresholds require independent
+validation. Broad extrema are useful context proposals even when their cause is
+uncertain; unresolved checks must not become negative findings or acceptance.
+
 Original overlapping fields or independent references support geometric stitching
 assessment. Before/after images and flat/dark-field references support correction
 assessment. A dark hole or line in a final export cannot establish its cause alone.

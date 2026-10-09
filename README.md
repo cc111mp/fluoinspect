@@ -17,6 +17,7 @@ interface exist; automated model inference and orchestration remain planned.
 | --- | --- |
 | Native TIFF reading | One top-left, minisblack uint16 grayscale plane; segment and memory guards |
 | Measurements | Intensity distributions, zero/storage-ceiling fractions, relative detail and provisional background variation |
+| Brightness patterns | Experimental broad axis-profile differences and repetition at an explicitly supplied native-pixel period; no quality labels |
 | Axial screening | Sharp horizontal/vertical intensity-pattern candidates; not causal stitching labels |
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
@@ -27,6 +28,15 @@ Autofluorescence and labelled fluorescence can share the numerical tools while
 requiring different assay interpretation. Record `--modality` explicitly. Tissue
 brightness and empty regions do not independently establish an artifact. A zero
 candidate count does not establish acceptable quality.
+
+`measure` also records experimental brightness-profile measurements. Broad
+left/right differences propose context strips in source coordinates. Repetition
+requires an explicit native-pixel period, supplied with `--pattern-period-px`;
+there is no default acquisition-grid spacing. See the measurement example below.
+These are numerical observations, not GRID/stitching classifications or final QC.
+Brightness-region selection defaults to a provisional nonzero-intensity Otsu gate;
+the edge screen's permissive hysteresis gate can be requested explicitly with
+`--pattern-foreground-method hysteresis`. Neither identifies a reviewed biological core.
 
 Linux and Python 3.11+ are currently supported. Multichannel OME-TIFF, image
 pyramids and broader WSI formats require additional reader adapters. GX10/Arm64
@@ -62,6 +72,21 @@ Runtime images, model credentials and outputs belong outside Git history. The
 repository ships synthetic generators and tests; no study images or run records
 are included.
 
+For an independently justified period hypothesis, request repetition measurements:
+
+```bash
+fluoinspect measure data/inputs/example.tif --modality autofluorescence \
+  --pattern-period-px 128 --pattern-period-basis hypothesis \
+  --output work/brightness-measurements
+```
+
+Here `128` illustrates a native-pixel period, not a scanner default. Use acquisition
+metadata or a documented hypothesis appropriate to the input. Without a period,
+periodicity remains unassessed while broad profile measurements are still available.
+Poor region coverage, too few supported cycles or inadequate sampling likewise
+remain unassessed. Within-image cycle prediction and off-period comparisons are
+development evidence; they do not establish biological artifact accuracy.
+
 ## Architecture
 
 ```text
@@ -85,10 +110,11 @@ appropriate causal verification. See [architecture](docs/architecture.md),
 
 ## Development and contributions
 
-The preparation check passed 114 tests on Linux, including tests against the
-installed wheel and synthetic workflows for both modalities. GitHub CI passes
-lint, tests and distribution builds on Python 3.11, 3.12 and 3.13. These checks
-establish software behavior, not assay-specific artifact-detection accuracy.
+The baseline preparation check passed 114 tests on Linux, including installed-wheel
+and synthetic workflows for both modalities. Brightness-pattern challenges extend
+this suite to 150 tests. The CI workflow checks lint, tests and distribution builds
+on Python 3.11, 3.12 and 3.13. These checks establish software behavior, not
+assay-specific artifact-detection accuracy.
 
 ```bash
 ruff check src tests examples

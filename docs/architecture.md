@@ -8,6 +8,12 @@ metadata and validated measurement profiles.
 The `io` module reads supported uint16 TIFF planes. `detectors` proposes sharp
 axial intensity patterns, while `measurements` returns descriptive statistics.
 `pipeline.measure_image` combines these without assigning image acceptance.
+The experimental brightness module records broad axis-profile extrema and
+repetition at an explicitly supplied native-pixel period. It returns source
+geometry, region/sampling eligibility and alternative-period comparisons without
+assigning a causal artifact class. Its settings participate in the run identity,
+and source-bound evidence packets retain the measurements or explicit absence for
+legacy records. Context strips describe profile extrema, not confirmed seams.
 Modality labels do not change or validate the development detector thresholds.
 
 `investigation` stores bounded views and precise source mappings. Local ownership
