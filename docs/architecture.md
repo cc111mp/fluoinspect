@@ -18,8 +18,10 @@ not distributed job leases.
 `tools.evidence` binds views and optional cached measurements to the same source.
 Its checks establish evidence integrity, not artifact recognition. `tools.registry`
 describes implemented method scope and methods still required. `agents` contains
-fixed role briefs and a backend interface; it does not contain a functioning
-inference client or autonomous investigation controller.
+fixed role briefs, vision and decision backend interfaces, typed question/answer
+contracts and code-owned triage routing. It does not contain a functioning
+inference client or autonomous investigation controller. See
+[typed decisions](typed-decisions.md) for evidence binding and confidence limits.
 
 `deployment` creates reproducible whole-image assignments and checks local paths
 and dependency metadata. One controller per node is the initial operating policy;

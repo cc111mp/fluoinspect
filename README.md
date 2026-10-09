@@ -10,6 +10,8 @@ The current release is **pre-alpha**. Image integrity, coordinates and numerical
 behavior are tested. Artifact-detection accuracy and acceptance thresholds require
 independent validation for each assay. Agent role instructions and a backend
 interface exist; automated model inference and orchestration remain planned.
+The optional [typed decision layer](docs/typed-decisions.md) provides choices,
+rubric scores and yes/no probabilities with validated outputs and code-owned routing.
 
 ## Current scope
 
@@ -21,7 +23,7 @@ interface exist; automated model inference and orchestration remain planned.
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
 | Deployment | Fixed job assignments, local storage preflight and node profiles |
-| Agents | Fixed review instructions and a provider-independent interface; model integration pending |
+| Agents | Fixed review instructions, typed decision contracts and QC routing; model integration pending |
 
 Autofluorescence and labelled fluorescence can share the numerical tools while
 requiring different assay interpretation. Record `--modality` explicitly. Tissue
@@ -85,7 +87,7 @@ appropriate causal verification. See [architecture](docs/architecture.md),
 
 ## Development and contributions
 
-The preparation check passed 114 tests on Linux, including tests against the
+The preparation check passed 139 tests on Linux, including tests against the
 installed wheel and synthetic workflows for both modalities. GitHub CI passes
 lint, tests and distribution builds on Python 3.11, 3.12 and 3.13. These checks
 establish software behavior, not assay-specific artifact-detection accuracy.
