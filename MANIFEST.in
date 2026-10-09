@@ -1,0 +1,6 @@
+include README.md LICENSE CONTRIBUTING.md pyproject.toml .gitignore
+recursive-include docs *.md
+recursive-include configs *.json
+recursive-include examples *.py
+recursive-include provenance *.json
+recursive-include tests *.py

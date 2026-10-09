@@ -1,0 +1,38 @@
+{
+  "scope": "Portable toolkit extracted from independently tested development modules. This contains code fingerprints only; no private run records or image identifiers.",
+  "modules": [
+    {
+      "source_module": "finish_qc_metrics.py",
+      "source_sha256": "300f492b19fa772c0103eafd2915ad4d5ceb5857d3b86f326843303e1fffd65d",
+      "package_module": "measurements/supporting.py"
+    },
+    {
+      "source_module": "qc_zoom_common.py",
+      "source_sha256": "75579945832ea07f73bdf5fd8d95c91beeefbef1a4b7e1556656aea1d9546dd0",
+      "package_module": "io/persistence.py"
+    },
+    {
+      "source_module": "qc_zoom_review.py",
+      "source_sha256": "f2cf00fb00f5066d4ca956d351c407ce6d29061439d60f723738295731d50cae",
+      "package_module": "investigation/session.py"
+    },
+    {
+      "source_module": "qc_zoom_deployment.py",
+      "source_sha256": "3be58a0cb5517edfa276693b0e87e2c1d7847bb288fb2f354e7e42d251807ba8",
+      "package_module": "deployment/plan.py"
+    },
+    {
+      "source_module": "qc_evidence_packet.py",
+      "source_sha256": "f1fa0d9885ddf59dc3e35bd7ed1ce26ff11e81849f7fc5c741b4bf61e94bd617",
+      "package_module": "tools/evidence.py"
+    },
+    {
+      "source_module": "tile_qc_v2.py",
+      "source_sha256": "82c73637ff56814189f26fedc8aedfbada8ff61a53540d53911d81983f59eaa3",
+      "package_modules": [
+        "io/native.py",
+        "detectors/axial.py"
+      ]
+    }
+  ]
+}

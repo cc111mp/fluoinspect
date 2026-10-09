@@ -1,0 +1,30 @@
+{
+  "schema": "af-qc.zoom-node-profile.v1",
+  "node_id": 0,
+  "node_count": 2,
+  "paths": {
+    "local_cache_root": null,
+    "local_work_root": null,
+    "source_root": null,
+    "publish_root": null
+  },
+  "execution": {
+    "active_sessions_per_node": 1,
+    "cpu_threads_per_process": 1
+  },
+  "review_budget": {
+    "max_views": 16,
+    "max_display_dimension": 1024,
+    "max_raw_crop_pixels": 4194304
+  },
+  "inference": {
+    "endpoint": null,
+    "model_id": null,
+    "model_revision": null,
+    "quantization": null,
+    "prompt_sha256": null,
+    "image_preprocessing_revision": null,
+    "request_timeout_seconds": 120,
+    "max_attempts": 2
+  }
+}

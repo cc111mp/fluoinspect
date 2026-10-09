@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fluoinspect"
+version = "0.1.0.dev0"
+description = "Fluorescence and autofluorescence QC with native evidence and guided investigation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "FluoInspect contributors"}]
+dependencies = ["numpy>=1.24", "tifffile>=2024.1", "Pillow>=10", "opencv-python-headless>=4.8"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+[project.urls]
+Repository = "https://github.com/cc111mp/fluoinspect"
+Issues = "https://github.com/cc111mp/fluoinspect/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "build>=1.2"]
+
+[project.scripts]
+fluoinspect = "fluoinspect.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"

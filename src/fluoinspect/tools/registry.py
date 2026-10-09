@@ -1,0 +1,10 @@
+"""Method availability and interpretation limits; no inferred quality acceptance."""
+TOOL_SCOPES = {
+    "source_and_crop_integrity": {"implemented": True, "scope": "file and pixel integrity; no quality label"},
+    "context_and_native_views": {"implemented": True, "scope": "recorded source rectangles and resolution"},
+    "sharp_axial_pattern_screen": {"implemented": True, "scope": "sharp horizontal/vertical candidates; AF accuracy unvalidated"},
+    "supporting_intensity_background_detail": {"implemented": True, "scope": "measurements only; masks and quality interpretation unvalidated"},
+    "broad_oblique_band_detector": {"implemented": False, "scope": "requires detector development and validation"},
+    "geometric_overlap_verifier": {"implemented": False, "scope": "requires original acquisition fields/reference evidence"},
+    "correction_damage_verifier": {"implemented": False, "scope": "requires before/after or calibration evidence"},
+}
