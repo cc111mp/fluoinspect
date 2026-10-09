@@ -1,5 +1,7 @@
 # FluoInspect
 
+[![Tests](https://github.com/cc111mp/fluoinspect/actions/workflows/tests.yml/badge.svg)](https://github.com/cc111mp/fluoinspect/actions/workflows/tests.yml)
+
 FluoInspect is a development toolkit for fluorescence and autofluorescence image
 QC. It preserves native pixels, produces quantitative screening evidence, and
 supports investigation from whole-image context to native detail crops.
@@ -83,11 +85,10 @@ appropriate causal verification. See [architecture](docs/architecture.md),
 
 ## Development and contributions
 
-The preparation check passed 114 tests on Linux with Python 3.11, including tests
-against the installed wheel and synthetic workflows for both modalities. Wheel
-and source distributions build successfully. The GitHub workflow also configures
-Python 3.12 and 3.13; those jobs have not yet run. These checks establish software
-behavior, not assay-specific artifact-detection accuracy.
+The preparation check passed 114 tests on Linux, including tests against the
+installed wheel and synthetic workflows for both modalities. GitHub CI passes
+lint, tests and distribution builds on Python 3.11, 3.12 and 3.13. These checks
+establish software behavior, not assay-specific artifact-detection accuracy.
 
 ```bash
 ruff check src tests examples
