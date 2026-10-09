@@ -3,6 +3,8 @@
 1. Stabilize the portable package, supported TIFF contract and reproducible examples.
 2. Develop and independently validate broad/oblique band, black-region and geometric
    stitching methods for fluorescence and autofluorescence assays.
+   Experimental axis-profile brightness and explicit-period measurements are now
+   available; artifact-specific thresholds and oblique localization remain pending.
 3. Add reader and metadata adapters for channels, acquisition fields and pyramids.
 4. Implement a local vision backend and bounded investigation controller after
    validating the measurements on which it relies.
