@@ -4,6 +4,8 @@ TOOL_SCOPES = {
     "context_and_native_views": {"implemented": True, "scope": "recorded source rectangles and resolution"},
     "analysis_region_lineage": {"implemented": True, "scope": "exact crop/parent coordinate binding; supplied core envelope remains unreviewed"},
     "systematic_detail_coverage": {"implemented": True, "scope": "bounded grid planning and exported-area union; does not establish model/human inspection"},
+    "experimental_local_artifacts": {"implemented": True, "scope": "systematic tiles including unflagged areas; local dark-region and axial-step proposals checked in original pixels; cause/accuracy unvalidated"},
+    "review_triage": {"implemented": True, "scope": "code-owned review routing; negative/unassessed screens remain unverified and no profile acceptance is assigned"},
     "sharp_axial_pattern_screen": {"implemented": True, "scope": "sharp horizontal/vertical candidates; AF accuracy unvalidated"},
     "supporting_intensity_background_detail": {"implemented": True, "scope": "measurements only; masks and quality interpretation unvalidated"},
     "experimental_brightness_patterns": {"implemented": True, "scope": "broad axis-profile variation and explicit-period repetition evidence; regions and artifact accuracy unvalidated"},

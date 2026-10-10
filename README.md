@@ -23,6 +23,8 @@ interface exist; automated model inference and orchestration remain planned.
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
 | Analysis regions | Exact native rectangle crops, checked parent mapping and opt-in envelope measurements retaining dim/zero pixels; core identity remains unreviewed |
 | Coverage | Bounded systematic detail plans and exact unions of exported native/preview areas; inspection remains unestablished |
+| Local artifact observations | Systematic tile evaluation of dark regions and abrupt axial steps, including unflagged areas; original-pixel rectangle checks and an evaluated-footprint ledger |
+| Review routing | Negative, unassessed and candidate results remain unverified; separate profile decisions stay pending |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
 | Deployment | Fixed job assignments, local storage preflight and node profiles |
 | Agents | Fixed review instructions and a provider-independent interface; model integration pending |
@@ -31,6 +33,34 @@ Autofluorescence and labelled fluorescence can share the numerical tools while
 requiring different assay interpretation. Record `--modality` explicitly. Tissue
 brightness and empty regions do not independently establish an artifact. A zero
 candidate count does not establish acceptable quality.
+
+### Local checks of unflagged regions
+
+```bash
+fluoinspect scan /data/export.tif --output /results/local_scan \
+  --modality autofluorescence --periodic-screen-state unflagged
+```
+
+The scan evaluates every scheduled overlapping tile without a foreground gate.
+It proposes dark regions by centre-versus-surround contrast and horizontal or
+vertical steps by coherent flank differences plus a narrow boundary check.
+Proposals are checked in original uint16 rectangles. Settings are provisional,
+and natural tissue spaces/boundaries can produce the same observations.
+`local_scan.json` records source hashes, native coordinates, candidate budgets
+and detector-evaluated footprints. `tile_review.csv` includes tiles with zero
+candidates; `image_review.csv` opens in Excel. Both retain **unverified** status.
+Use `--bbox X0 Y0 X1 Y1` for an explicitly supplied, unreviewed analysis envelope,
+or `--max-tiles` to bound the scan. Defaults are 1024-pixel tiles, 768-pixel stride
+and at most 512 tiles. The independent scan budget does not consume view exports.
+Mean-pooled proposal coverage is distinct from exhaustive native-detail or
+human/model inspection. Missing tiles, unresolved scales and omitted proposals
+are recorded. No outcome assigns acceptance or a cause such as stitching or
+background-correction damage. The periodic state is optional caller-supplied
+evidence, not a threshold estimated by this command.
+
+`measure --local-artifacts` embeds the same scan in a source-bound measurement
+record for evidence packets. Expert annotations are joined only after inference
+in private development studies; they are never detector inputs.
 
 `measure` also records experimental brightness-profile measurements. Broad
 left/right differences propose context strips in source coordinates. Repetition
