@@ -55,6 +55,50 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         or brightness.get("engine_id") != record.get("measurement_configuration", {}).get("brightness_patterns", {}).get("engine_id")
     ):
         raise ValueError("Brightness measurement scope disagrees with the source or its interpretation")
+    bands = record.get("alternating_bands")
+    if bands is None and record.get("measurement_configuration", {}).get("alternating_bands") is not None:
+        raise ValueError("Enabled alternating-band measurements are missing")
+    if bands is not None:
+        methods = record.get("measurement_configuration", {}).get("alternating_bands", {})
+        if (not isinstance(bands, dict) or bands.get("schema") != "fluoinspect.alternating-bands.v1"
+                or bands.get("source_shape_yx") != info["shape_yx"]
+                or bands.get("assessment") != "experimental_measurements_only"
+                or bands.get("artifact_accuracy_validated") is not False
+                or bands.get("source_pixels_modified") is not False
+                or bands.get("region_identity_reviewed") is not False
+                or bands.get("dark_pixels_retained") is not True
+                or bands.get("quality_decision") is not None
+                or bands.get("configuration") != methods.get("configuration")
+                or bands.get("engine_id") != methods.get("engine_id")):
+            raise ValueError("Alternating-band measurement scope or interpretation disagrees")
+        region = zoom.validate_box(bands.get("source_region_level0_xyxy"), info["shape_yx"])
+        expected_region = methods.get("configuration", {}).get("region_xyxy") or [0, 0, info["shape_yx"][1], info["shape_yx"][0]]
+        if list(region) != list(expected_region):
+            raise ValueError("Alternating-band region disagrees with its recorded configuration")
+        candidates = bands.get("native_verified_bands")
+        pairs = bands.get("parallel_alternating_pairs")
+        straight_pairs = bands.get("straight_edged_alternating_pairs", [])
+        if (not isinstance(candidates, list) or any(not isinstance(c, dict) for c in candidates)
+                or not isinstance(pairs, list) or not isinstance(straight_pairs, list)):
+            raise ValueError("Invalid alternating-band evidence collections")
+        ids = [c.get("candidate_id") for c in candidates]
+        if any(not isinstance(v, str) or not v for v in ids) or len(ids) != len(set(ids)):
+            raise ValueError("Invalid alternating-band candidate identifiers")
+        for candidate in candidates:
+            context = zoom.validate_box(candidate.get("context_bbox_level0_xyxy"), info["shape_yx"])
+            if (candidate.get("status") != "native_verified_pattern"
+                    or candidate.get("native_sampling_method") != "nearest_original_pixels"
+                    or context[0] < region[0] or context[1] < region[1]
+                    or context[2] > region[2] or context[3] > region[3]):
+                raise ValueError("Alternating-band candidate context disagrees with the source region")
+        if any(not isinstance(p, dict) or len(p.get("band_ids", [])) != 2
+               or p["band_ids"][0] == p["band_ids"][1]
+               or any(v not in ids for v in p["band_ids"]) for p in pairs + straight_pairs):
+            raise ValueError("Alternating-band pair references unknown candidates")
+        straight_ids = {c["candidate_id"] for c in candidates
+                        if c.get("dark_edge_geometry", {}).get("straight_edged_loss_pattern") is True}
+        if any(any(v not in straight_ids for v in pair["band_ids"]) for pair in straight_pairs):
+            raise ValueError("Straight-edge pair lacks the recorded edge measurements")
     return {
         "record_sha256": checksum, "asset_id": record["asset_id"], "run_identity": record["run_identity"],
         "measurement_configuration": record.get("measurement_configuration"),
@@ -66,6 +110,7 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         "raw": metrics["raw"], "relative_detail": metrics["detail_summary"],
         "background_summary": {k: v for k, v in metrics["background"].items() if k != "cells"},
         "brightness_patterns": brightness,
+        "alternating_bands": bands,
         "caveats": metrics["caveats"], "artifact_detection_accuracy_validated": False,
     }
 

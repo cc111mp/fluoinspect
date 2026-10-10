@@ -11,14 +11,17 @@ from .io.native import read_native
 from .io.persistence import atomic_json
 from .measurements.supporting import compute_supporting_metrics
 from .measurements.brightness import BrightnessConfig, ENGINE_ID as BRIGHTNESS_ENGINE, measure_brightness_patterns
+from .detectors.bands import BandConfig, ENGINE_ID as BANDS_ENGINE, measure_alternating_bands
 
 
-def measure_image(source, *, modality="autofluorescence", brightness_config=None):
+def measure_image(source, *, modality="autofluorescence", brightness_config=None, band_config=None):
     if modality not in {"autofluorescence", "fluorescence"}:
         raise ValueError("Modality must be autofluorescence or fluorescence")
     brightness_config = BrightnessConfig() if brightness_config is None else brightness_config
     if not isinstance(brightness_config, BrightnessConfig):
         raise ValueError("A BrightnessConfig is required")
+    if band_config is not None and not isinstance(band_config, BandConfig):
+        raise ValueError("A BandConfig is required")
     methods = {
         "package_version": __version__,
         "axial_detector": {"engine_id": axial.ENGINE_ID, "settings": dict(axial.SETTINGS),
@@ -28,6 +31,8 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
                                "background_cells_per_axis": 8},
         "brightness_patterns": {"engine_id": BRIGHTNESS_ENGINE, "configuration": brightness_config.to_dict()},
     }
+    if band_config is not None:
+        methods["alternating_bands"] = {"engine_id": BANDS_ENGINE, "configuration": band_config.to_dict()}
     methods_sha = hashlib.sha256(json.dumps(methods, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     source = Path(source).resolve()
     before = fingerprint(source)
@@ -40,6 +45,7 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
     _, _, candidates, _, _ = axial.screen_native(native)
     metrics = compute_supporting_metrics(native, **methods["supporting_metrics"])
     brightness = measure_brightness_patterns(native, config=brightness_config)
+    bands = measure_alternating_bands(native, config=band_config) if band_config is not None else None
     if fingerprint(source) != before or sha(source) != file_sha or native_hash(native) != pixels_sha:
         raise ValueError("Source file or decoded pixels changed during measurement")
     unique = [c for c in candidates if c["unique_verified_pattern"]]
@@ -56,7 +62,7 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
         "staging": {"file_sha256": file_sha, "source_access": "direct local read; no staging copy claimed"},
         "native_confirmed_patterns": len(unique), "scored_lines": None,
         "central_proxy_assessed": False, "central_proxy_is_reviewed_core_boundary": False,
-        "lines": candidates, "metrics": metrics, "brightness_patterns": brightness,
+        "lines": candidates, "metrics": metrics, "brightness_patterns": brightness, "alternating_bands": bands,
         "automated_assessment": "measurements_only", "validation_status": "unvalidated_for_quality_decisions",
         "human_decision": "", "reviewed_issues": "",
     }
@@ -73,13 +79,29 @@ def main():
                         help="Provenance of the supplied period; neither option establishes artifact accuracy")
     parser.add_argument("--pattern-foreground-method", choices=["intensity_otsu", "hysteresis"], default="intensity_otsu",
                         help="Explicit provisional brightness-region selection; neither method establishes core identity")
+    parser.add_argument("--alternating-bands", action="store_true", help="Opt in to experimental bright/dark band geometry measurements")
+    parser.add_argument("--band-region", help="Optional native X0,Y0,X1,Y1 rectangle; core identity remains unreviewed")
+    parser.add_argument("--band-widths-px", help="Comma-separated native analysis widths; unresolved widths remain unassessed")
+    parser.add_argument("--band-angles-deg", help="Comma-separated proposed line directions; native refinement remains bounded")
     args = parser.parse_args()
     source, output = args.source.resolve(), args.output.resolve()
     if output.is_relative_to(source.parent) or source.is_relative_to(output):
         raise ValueError("Output must be separate from the source image directory")
     config = BrightnessConfig(period_native_px=args.pattern_period_px, period_basis=args.pattern_period_basis,
                               foreground_method=args.pattern_foreground_method)
-    result = measure_image(source, modality=args.modality, brightness_config=config)
+    if not args.alternating_bands and any((args.band_region, args.band_widths_px, args.band_angles_deg)):
+        parser.error("Band options require --alternating-bands")
+    band_config = None
+    if args.alternating_bands:
+        options = {}
+        if args.band_region:
+            options["region_xyxy"] = tuple(int(v) for v in args.band_region.split(","))
+        if args.band_widths_px:
+            options["widths_native_px"] = tuple(int(v) for v in args.band_widths_px.split(","))
+        if args.band_angles_deg:
+            options["angles_degrees"] = tuple(float(v) for v in args.band_angles_deg.split(","))
+        band_config = BandConfig(**options)
+    result = measure_image(source, modality=args.modality, brightness_config=config, band_config=band_config)
     output.mkdir(parents=True, exist_ok=False)
     atomic_json(output / "measurements.json", result)
     print(json.dumps({"record": str(output / "measurements.json"),
