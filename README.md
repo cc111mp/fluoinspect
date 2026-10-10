@@ -18,6 +18,7 @@ interface exist; automated model inference and orchestration remain planned.
 | Native TIFF reading | One top-left, minisblack uint16 grayscale plane; segment and memory guards |
 | Measurements | Intensity distributions, zero/storage-ceiling fractions, relative detail and provisional background variation |
 | Brightness patterns | Experimental broad axis-profile differences and repetition at an explicitly supplied native-pixel period; no quality labels |
+| Alternating bands | Opt-in oriented dark-band and parallel-pair measurements, sampled original-pixel checks and straight-edge/zero-pixel descriptors; no quality labels |
 | Axial screening | Sharp horizontal/vertical intensity-pattern candidates; not causal stitching labels |
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
@@ -87,6 +88,29 @@ Poor region coverage, too few supported cycles or inadequate sampling likewise
 remain unassessed. Within-image cycle prediction and off-period comparisons are
 development evidence; they do not establish biological artifact accuracy.
 
+For brighter–darker–brighter bands, opt in to a separate measurement:
+
+```bash
+fluoinspect measure data/inputs/example.tif --modality autofluorescence \
+  --alternating-bands --band-region 100,100,1500,1500 \
+  --band-widths-px 4,16,64,256 --band-angles-deg 0,90 \
+  --output work/band-measurements
+```
+
+The rectangle is illustrative and must lie within the source image; it does not
+establish a reviewed core. This tool retains dark pixels, proposes regions at
+recorded orientations and scales, fits their direction, and checks brighter flanks
+in sampled original pixels. It also records low-signal edge straightness, width
+variation, exact-zero fractions and relative texture. Two parallel bands with a
+brighter interval are an alternating intensity pattern; no acquisition period is
+required. These descriptors cannot establish stitching/correction cause or quality
+rejection. Ordinary tissue channels can produce similar patterns.
+
+Fine unresolved widths, insufficient flank context and omitted proposals remain
+explicit. Inspect the overview and source-bound contexts, including unflagged
+regions, before interpreting a negative result. Band measurements are disabled by
+default; legacy records retain explicit absence.
+
 ## Architecture
 
 ```text
@@ -112,7 +136,8 @@ appropriate causal verification. See [architecture](docs/architecture.md),
 
 The baseline preparation check passed 114 tests on Linux, including installed-wheel
 and synthetic workflows for both modalities. Brightness-pattern challenges extend
-this suite to 150 tests. The CI workflow checks lint, tests and distribution builds
+this suite to 150 tests; alternating-band geometry and evidence challenges extend
+it to 182 tests. The CI workflow checks lint, tests and distribution builds
 on Python 3.11, 3.12 and 3.13. These checks establish software behavior, not
 assay-specific artifact-detection accuracy.
 

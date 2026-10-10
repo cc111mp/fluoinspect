@@ -22,6 +22,17 @@ Period selection, biological confounds and artifact thresholds require independe
 validation. Broad extrema are useful context proposals even when their cause is
 uncertain; unresolved checks must not become negative findings or acceptance.
 
+For alternating-band measurements, vary native angle, strip width, separation,
+contrast, texture, sampling scale and region edges. Challenge long curved tissue
+channels and localized dark holes alongside known straight bands. Both normal
+tissue and technical errors may have parallel dark features: native intensity and
+edge verification do not adjudicate their cause. The low-signal edge descriptors
+are experimental, and their operating thresholds require independent validation.
+Record per-orientation/scale and global proposal limits, unresolved fine widths,
+sampling steps and missing flank context. A rectangle alone does not establish the
+target-core identity. Include native crop/source binding in the final integration
+evaluation, and compare actual inspected regions with expert-localized defects.
+
 Original overlapping fields or independent references support geometric stitching
 assessment. Before/after images and flat/dark-field references support correction
 assessment. A dark hole or line in a final export cannot establish its cause alone.
