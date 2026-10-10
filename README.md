@@ -21,6 +21,8 @@ interface exist; automated model inference and orchestration remain planned.
 | Alternating bands | Opt-in oriented dark-band and parallel-pair measurements, sampled original-pixel checks and straight-edge/zero-pixel descriptors; no quality labels |
 | Axial screening | Sharp horizontal/vertical intensity-pattern candidates; not causal stitching labels |
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
+| Analysis regions | Exact native rectangle crops, checked parent mapping and opt-in envelope measurements retaining dim/zero pixels; core identity remains unreviewed |
+| Coverage | Bounded systematic detail plans and exact unions of exported native/preview areas; inspection remains unestablished |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
 | Deployment | Fixed job assignments, local storage preflight and node profiles |
 | Agents | Fixed review instructions and a provider-independent interface; model integration pending |
@@ -113,6 +115,54 @@ default; legacy records retain explicit absence.
 
 ## Architecture
 
+Prepare one analysis asset for all measurement tools when a target rectangle has
+been selected. This retains original values and keeps child coordinates separate
+from parent-export coordinates:
+
+```bash
+fluoinspect region --source data/inputs/example.tif --bbox 100 100 1500 1500 \
+  --output work/analysis-region
+```
+
+Retain the printed receipt SHA-256 independently. Bind the mapping during measurement:
+
+```bash
+fluoinspect measure work/analysis-region/region.tif \
+  --region-receipt work/analysis-region/region.json \
+  --expected-region-receipt-sha256 RECEIPT_SHA256 \
+  --pattern-foreground-method region_envelope --alternating-bands \
+  --output work/region-measurements
+```
+
+The example coordinates must fit the input. A rectangle does not identify a
+biological core or exclude neighbours reliably. `region_envelope` measures all
+pixels in that analysis image, including internal dim/zero pixels, without
+brightness selection or erosion; it may include glass and natural tissue gaps.
+It is opt-in and changes the recorded measurement configuration. Existing
+nonzero-intensity selection remains the default. Changes in masks, crop support
+or coordinate origin require fresh development evaluation and calibration;
+do not reuse old thresholds as validated decisions.
+For ambiguous or incomplete exports, record `--target-identity-status unresolved`
+when preparing the region. This status remains in the bound evidence; it does
+not reconstruct missing tissue or establish an intended core.
+
+Create a session and plan or export systematic detail views:
+
+```bash
+fluoinspect inspect create --source work/analysis-region/region.tif \
+  --output work/region-session
+fluoinspect coverage --session work/region-session --tile-size 1024 --stride 768 \
+  --export-views --output work/region-coverage
+```
+
+The planner respects the remaining session budget and records omitted grid
+regions. `--export-views` is optional; a plan alone exports no views. Evidence
+packets report the exact union of recorded native crops and full-resolution
+previews, so overlapping tiles do not inflate coverage. Exported area is separate
+from actual inspection: model/human inspection and automatic acceptance remain
+unestablished, even when exported area reaches 100%. All coordinates refer to
+the session's input TIFF; the region receipt maps them to its parent export.
+
 ```text
 src/fluoinspect/
   io/              native reading and durable receipts
@@ -137,7 +187,8 @@ appropriate causal verification. See [architecture](docs/architecture.md),
 The baseline preparation check passed 114 tests on Linux, including installed-wheel
 and synthetic workflows for both modalities. Brightness-pattern challenges extend
 this suite to 150 tests; alternating-band geometry and evidence challenges extend
-it to 182 tests. The CI workflow checks lint, tests and distribution builds
+it to 182 tests. Region lineage and coverage challenges extend it to 201 tests.
+The CI workflow checks lint, tests and distribution builds
 on Python 3.11, 3.12 and 3.13. These checks establish software behavior, not
 assay-specific artifact-detection accuracy.
 
