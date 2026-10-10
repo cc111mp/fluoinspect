@@ -24,6 +24,8 @@ interface exist; automated model inference and orchestration remain planned.
 | Analysis regions | Exact native rectangle crops, checked parent mapping and opt-in envelope measurements retaining dim/zero pixels; core identity remains unreviewed |
 | Coverage | Bounded systematic detail plans and exact unions of exported native/preview areas; inspection remains unestablished |
 | Local artifact observations | Systematic tile evaluation of dark regions and abrupt axial steps, including unflagged areas; original-pixel rectangle checks and an evaluated-footprint ledger |
+| Core region proposals | Coarse traditional envelope, tissue-support and nearby-background labels, explicit ambiguous/partial status and original-pixel intensity statistics |
+| Candidate region attribution | Assign unchanged local measurements to provisional core, boundary, background and neighbour scopes; retain all original candidates |
 | Review routing | Negative, unassessed and candidate results remain unverified; separate profile decisions stay pending |
 | Evidence | Source hashes, exact native crop readback, record binding and explicit unassessed checks |
 | Deployment | Fixed job assignments, local storage preflight and node profiles |
@@ -33,6 +35,39 @@ Autofluorescence and labelled fluorescence can share the numerical tools while
 requiring different assay interpretation. Record `--modality` explicitly. Tissue
 brightness and empty regions do not independently establish an artifact. A zero
 candidate count does not establish acceptable quality.
+
+### Core, tissue support and surrounding background
+
+```bash
+fluoinspect core /data/export.tif --output /results/core_regions --scan-local
+```
+
+The experimental proposer uses derived overview intensities, morphology and
+convex geometry. Its outer envelope includes internal dark/zero areas; its
+tissue-support mask is recorded separately. Source image values are never filled
+or multiplied by masks. The nearby-background ring excludes provisional neighbour
+envelopes and bright support. A center prior is a hypothesis, not the core's
+identity. Use `--target-point X Y` to supply an explicit unreviewed native-coordinate
+prior. Partial, elongated, similarly ranked or overlapping proposals retain
+unresolved status. Every proposal still requires boundary/identity review.
+
+`core_regions.json` binds source hashes, geometry, original-pixel intensity
+statistics, interpretation limits and pending QC profiles. `regions.tif` contains
+bounded uint8 overview labels, with an explicit clipped native-cell mapping;
+it is not a native-resolution tissue segmentation. `core_review.csv` and
+`candidate_regions.csv` open in Excel. A source-bound cached `scan` record can be
+supplied with `--cached-local-scan` and its independently retained
+`--expected-local-scan-sha256`. This attributes identical detector scores and
+tile context to the proposed regions, isolating scope changes without rerunning
+on artificially blackened or differently anchored crops. All original candidates,
+including neighbours, boundary-crossing cases and outside observations, remain
+in the output. Fewer core-attributed candidates do not establish higher accuracy.
+
+`fluoinspect.segmentation.workflow.verify_core_result` rechecks the source,
+label file, recomputed geometry and pending review policy against a retained
+record hash. Original pixels, expert labels and both profile decisions remain
+unchanged. Artifact causality, segmentation accuracy and human/model inspection
+are unvalidated.
 
 ### Local checks of unflagged regions
 

@@ -16,6 +16,15 @@ and source-bound evidence packets retain the measurements or explicit absence fo
 legacy records. Context strips describe profile extrema, not confirmed seams.
 Modality labels do not change or validate the development detector thresholds.
 
+`segmentation` proposes coarse core envelopes, separate intensity-derived tissue
+support and nearby background excluding provisional neighbours. It retains source
+values, explicit native-cell mappings and unreviewed/unresolved identity. Optional
+local candidate attribution uses unchanged source-bound measurements and tile
+context; it never paints excluded pixels black before detection. Dedicated source,
+mask and recomputed-geometry verification supports future tool integration.
+The core CLI produces JSON and review CSVs; biological boundary accuracy and
+agent consumption of this new evidence still require evaluation.
+
 `investigation` stores bounded views and precise source mappings. Local ownership
 locks serialize writes, identified retries reuse committed views, and sealed
 reports block additional mutations. These locks are local filesystem locks,
