@@ -54,8 +54,10 @@ class BrightnessConfig:
             raise ValueError("Period must be finite and positive, or absent")
         if self.period_basis not in {"hypothesis", "acquisition_metadata"}:
             raise ValueError("Period basis must be a hypothesis or supplied metadata")
-        if self.foreground_method not in {"intensity_otsu", "hysteresis"}:
+        if self.foreground_method not in {"intensity_otsu", "hysteresis", "region_envelope"}:
             raise ValueError("Unsupported provisional foreground method")
+        if self.foreground_method == "region_envelope" and self.erosion_cells != 0:
+            raise ValueError("Region-envelope measurements require explicit zero erosion")
         if (not isinstance(self.control_period_factors, tuple)
                 or not 1 <= len(self.control_period_factors) <= 8
                 or any(type(v) not in (int, float) or not math.isfinite(v)
@@ -240,7 +242,10 @@ def measure_brightness_patterns(native, *, config=None, region_mask=None):
     overview = _block_mean(native, step)
     levels = np.log1p(overview)
     if region_mask is None:
-        if config.foreground_method == "hysteresis":
+        if config.foreground_method == "region_envelope":
+            mask = np.ones_like(levels, bool)
+            mask_method = "unreviewed_rectangle_envelope_including_dark_pixels"
+        elif config.foreground_method == "hysteresis":
             mask, _, _ = axial.tissue_mask(overview)
             mask_method = "provisional_foreground_hysteresis"
         else:

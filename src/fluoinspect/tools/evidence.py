@@ -15,6 +15,8 @@ import numpy as np
 from PIL import Image
 
 from ..investigation import session as zoom
+from ..investigation.coverage import summarize_views
+from ..investigation.regions import verify_region
 from ..io.persistence import atomic_json
 
 from ..agents.prompts import ROLE_BRIEFS
@@ -41,6 +43,25 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
     metrics = record["metrics"]
     if metrics.get("source_shape_yx") != info["shape_yx"]:
         raise ValueError("Metric geometry disagrees with the source")
+    lineage = record.get("source_region_lineage")
+    if lineage is not None:
+        if not isinstance(lineage, dict):
+            raise ValueError("Invalid source region lineage")
+        receipt, child = verify_region(lineage.get("receipt_path"),
+                                       expected_receipt_sha256=lineage.get("receipt_sha256"))
+        if (child != Path(info["source"]).resolve()
+                or receipt["child_file_sha256"] != info["source_file_sha256"]
+                or receipt["child_pixel_sha256"] != pixel_sha256
+                or receipt["modality"] != info.get("modality")
+                or lineage.get("region_identity_reviewed") is not False
+                or lineage.get("parent_crop_mapping_verified") is not True
+                or any(lineage.get(k) != receipt[k] for k in ("parent_source", "parent_file_sha256",
+                           "parent_pixel_sha256", "parent_shape_yx", "bbox_parent_level0_xyxy", "coordinate_mapping", "target_identity_status"))
+                or record.get("measurement_configuration", {}).get("source_region") != {
+                    k: lineage[k] for k in ("receipt_sha256", "parent_file_sha256", "parent_pixel_sha256", "bbox_parent_level0_xyxy", "target_identity_status")}):
+            raise ValueError("Region lineage disagrees with the source or configuration")
+    elif record.get("measurement_configuration", {}).get("source_region") is not None:
+        raise ValueError("Enabled source region lineage is missing")
     brightness = record.get("brightness_patterns")
     if brightness is not None and (
         not isinstance(brightness, dict)
@@ -111,6 +132,7 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         "background_summary": {k: v for k, v in metrics["background"].items() if k != "cells"},
         "brightness_patterns": brightness,
         "alternating_bands": bands,
+        "source_region_lineage": lineage,
         "caveats": metrics["caveats"], "artifact_detection_accuracy_validated": False,
     }
 
@@ -173,8 +195,7 @@ def build_packet(session, *, record=None, expected_record_sha256=None):
                              "native_crops_checked": any(v["native_tiff"] for v in views),
                              "native_crop_count": sum(v["native_tiff"] is not None for v in views),
                              "artifact_detection_accuracy_validated": False},
-            "coverage": {"view_count": len(views), "full_resolution_image_inspection_established": False,
-                         "note": "Exported crops and their resolution are logged; model inspection is not established."},
+            "coverage": summarize_views(info["shape_yx"], views),
             "unassessed_checks": ["Calibrated artifact detection", "Geometric acquisition-overlap verification",
                                   "Before/after background correction", "Calibrated field homogeneity and focus"],
             "model_adapter_implemented": False, "model_inference_executed": False,

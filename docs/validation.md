@@ -3,6 +3,21 @@
 Software tests verify decoding, numerical behavior, coordinates and evidence
 binding. They do not establish detection accuracy on biological images.
 
+Analysis-region receipts require retained receipt hashes, unchanged parent and
+child sources, exact native crop readback and a checked child-to-parent mapping.
+Rectangle envelopes retain internal dark values but do not establish biological
+core identity. Compare target selection with expert-reviewed boundaries,
+including incomplete cores and neighbouring tissue. Reevaluate thresholds when
+crop support or foreground policy changes; dark-retaining envelopes may include
+glass or physiological spaces and do not independently improve specificity.
+
+Coverage planning must handle image edges, overlapping tiles, native sampling,
+remaining view budgets and explicit omissions. Check area unions against an
+independent raster on controlled geometries. Keep planned, exported and inspected
+scope distinct. Native crops and preview resolution establish available evidence,
+not successful model or human review. Validate inspection coverage against
+expert-localized artifacts separately before enabling quality acceptance.
+
 For each detector, define the artifact or measured pattern, required references,
 units and supported conditions. Build controlled challenges with known gain,
 offset, transition width, orientation, displacement and noise. Include genuine
