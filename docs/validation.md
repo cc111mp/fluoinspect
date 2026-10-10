@@ -52,6 +52,18 @@ Original overlapping fields or independent references support geometric stitchin
 assessment. Before/after images and flat/dark-field references support correction
 assessment. A dark hole or line in a final export cannot establish its cause alone.
 
+For local observations, freeze tile geometry and native-unit settings before
+comparing with reference annotations. Test isolated holes, non-repeating lines,
+one-sided steps, smooth illumination gradients and natural cavities/boundaries.
+Test partial edges and overlapping tiles against an independent raster; a full
+evaluated footprint means every scheduled region ran through these bounded
+methods, not that every artifact width/orientation was resolved. Include zero
+candidate tiles in review exports. Record candidate omissions, native proposal
+scale, original-pixel checks and uninspected scope separately. Report additional
+reference cases routed and additional expert-OK workload, rather than treating
+candidate routing as correct defect classification. Negative periodic and local
+screens must retain unverified status even with a complete detector footprint.
+
 After method validation, evaluate the complete agent on held-out cases. Compare
 fixed views with adaptive investigation under documented budgets. Record actual
 inspection coverage and model settings. A negative model response or detector

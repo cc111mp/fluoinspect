@@ -13,10 +13,12 @@ from .measurements.supporting import compute_supporting_metrics
 from .measurements.brightness import BrightnessConfig, ENGINE_ID as BRIGHTNESS_ENGINE, measure_brightness_patterns
 from .detectors.bands import BandConfig, ENGINE_ID as BANDS_ENGINE, measure_alternating_bands
 from .investigation.regions import verify_region
+from .detectors.local import LocalConfig, ENGINE_ID as LOCAL_ENGINE, measure_local_artifacts
+from .investigation.triage import review_triage
 
 
 def measure_image(source, *, modality="autofluorescence", brightness_config=None, band_config=None,
-                  region_receipt=None, expected_region_receipt_sha256=None):
+                  region_receipt=None, expected_region_receipt_sha256=None, local_config=None):
     if modality not in {"autofluorescence", "fluorescence"}:
         raise ValueError("Modality must be autofluorescence or fluorescence")
     brightness_config = BrightnessConfig() if brightness_config is None else brightness_config
@@ -24,6 +26,8 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
         raise ValueError("A BrightnessConfig is required")
     if band_config is not None and not isinstance(band_config, BandConfig):
         raise ValueError("A BandConfig is required")
+    if local_config is not None and not isinstance(local_config, LocalConfig):
+        raise ValueError("A LocalConfig is required")
     source = Path(source).resolve()
     lineage = None
     if region_receipt is None and expected_region_receipt_sha256 is not None:
@@ -49,6 +53,8 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
     }
     if band_config is not None:
         methods["alternating_bands"] = {"engine_id": BANDS_ENGINE, "configuration": band_config.to_dict()}
+    if local_config is not None:
+        methods["local_artifacts"] = {"engine_id": LOCAL_ENGINE, "configuration": local_config.to_dict()}
     if lineage is not None:
         methods["source_region"] = {k: lineage[k] for k in ("receipt_sha256", "parent_file_sha256",
                                                             "parent_pixel_sha256", "bbox_parent_level0_xyxy", "target_identity_status")}
@@ -64,6 +70,10 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
     metrics = compute_supporting_metrics(native, **methods["supporting_metrics"])
     brightness = measure_brightness_patterns(native, config=brightness_config)
     bands = measure_alternating_bands(native, config=band_config) if band_config is not None else None
+    local = measure_local_artifacts(native, config=local_config) if local_config is not None else None
+    # Periodic measurements have no calibrated runtime classifier in this branch.
+    triage = review_triage(periodic_state="unverified", local_artifacts=local,
+                           target_identity_status=lineage["target_identity_status"] if lineage else "unreviewed")
     if fingerprint(source) != before or sha(source) != file_sha or native_hash(native) != pixels_sha:
         raise ValueError("Source file or decoded pixels changed during measurement")
     if lineage is not None and sha(lineage["parent_source"]) != lineage["parent_file_sha256"]:
@@ -84,6 +94,7 @@ def measure_image(source, *, modality="autofluorescence", brightness_config=None
         "native_confirmed_patterns": len(unique), "scored_lines": None,
         "central_proxy_assessed": False, "central_proxy_is_reviewed_core_boundary": False,
         "lines": candidates, "metrics": metrics, "brightness_patterns": brightness, "alternating_bands": bands,
+        "local_artifacts": local, "review_triage": triage,
         "automated_assessment": "measurements_only", "validation_status": "unvalidated_for_quality_decisions",
         "human_decision": "", "reviewed_issues": "",
     }
@@ -104,10 +115,14 @@ def main():
     parser.add_argument("--region-receipt", type=Path, help="Verified parent-export mapping for a prepared analysis crop")
     parser.add_argument("--expected-region-receipt-sha256", help="Independently retained region receipt hash")
     parser.add_argument("--alternating-bands", action="store_true", help="Opt in to experimental bright/dark band geometry measurements")
+    parser.add_argument("--local-artifacts", action="store_true", help="Scan every scheduled tile for experimental local dark regions and axial steps")
+    parser.add_argument("--local-max-tiles", type=int, help="Bounded detector tile budget; requires --local-artifacts")
     parser.add_argument("--band-region", help="Optional native X0,Y0,X1,Y1 rectangle; core identity remains unreviewed")
     parser.add_argument("--band-widths-px", help="Comma-separated native analysis widths; unresolved widths remain unassessed")
     parser.add_argument("--band-angles-deg", help="Comma-separated proposed line directions; native refinement remains bounded")
     args = parser.parse_args()
+    if args.local_max_tiles is not None and not args.local_artifacts:
+        parser.error("Local tile budget requires --local-artifacts")
     source, output = args.source.resolve(), args.output.resolve()
     if output.is_relative_to(source.parent) or source.is_relative_to(output):
         raise ValueError("Output must be separate from the source image directory")
@@ -129,7 +144,9 @@ def main():
         band_config = BandConfig(**options)
     result = measure_image(source, modality=args.modality, brightness_config=config, band_config=band_config,
                            region_receipt=args.region_receipt,
-                           expected_region_receipt_sha256=args.expected_region_receipt_sha256)
+                           expected_region_receipt_sha256=args.expected_region_receipt_sha256,
+                           local_config=LocalConfig(max_tiles=args.local_max_tiles if args.local_max_tiles is not None else 512)
+                           if args.local_artifacts else None)
     output.mkdir(parents=True, exist_ok=False)
     atomic_json(output / "measurements.json", result)
     print(json.dumps({"record": str(output / "measurements.json"),

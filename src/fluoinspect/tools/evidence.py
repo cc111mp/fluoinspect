@@ -17,6 +17,8 @@ from PIL import Image
 from ..investigation import session as zoom
 from ..investigation.coverage import summarize_views
 from ..investigation.regions import verify_region
+from ..investigation.triage import review_triage
+from ..detectors.local import validate_local_evidence
 from ..io.persistence import atomic_json
 
 from ..agents.prompts import ROLE_BRIEFS
@@ -120,6 +122,21 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
                         if c.get("dark_edge_geometry", {}).get("straight_edged_loss_pattern") is True}
         if any(any(v not in straight_ids for v in pair["band_ids"]) for pair in straight_pairs):
             raise ValueError("Straight-edge pair lacks the recorded edge measurements")
+    local = record.get("local_artifacts")
+    local_methods = record.get("measurement_configuration", {}).get("local_artifacts")
+    if local is None and local_methods is not None:
+        raise ValueError("Enabled local artifact measurements are missing")
+    if local is not None:
+        validate_local_evidence(local, info["shape_yx"], local_methods or {})
+        if local["target_region_level0_xyxy"] != [0, 0, info["shape_yx"][1], info["shape_yx"][0]]:
+            raise ValueError("Pipeline local target disagrees")
+    triage = record.get("review_triage")
+    if triage is not None and triage != review_triage(
+            periodic_state="unverified", local_artifacts=local,
+            target_identity_status=lineage["target_identity_status"] if lineage else "unreviewed"):
+        raise ValueError("Review triage disagrees with code-owned policy")
+    if local is not None and triage is None:
+        raise ValueError("Local measurements require pending review triage")
     return {
         "record_sha256": checksum, "asset_id": record["asset_id"], "run_identity": record["run_identity"],
         "measurement_configuration": record.get("measurement_configuration"),
@@ -132,6 +149,7 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         "background_summary": {k: v for k, v in metrics["background"].items() if k != "cells"},
         "brightness_patterns": brightness,
         "alternating_bands": bands,
+        "local_artifacts": local, "review_triage": triage,
         "source_region_lineage": lineage,
         "caveats": metrics["caveats"], "artifact_detection_accuracy_validated": False,
     }
