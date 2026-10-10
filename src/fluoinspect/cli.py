@@ -6,17 +6,18 @@ def main():
     commands = {"measure": "pipeline", "inspect": "investigation.session",
                 "packet": "tools.evidence", "deploy": "deployment.plan",
                 "region": "investigation.regions", "coverage": "investigation.coverage",
-                "scan": "investigation.local_scan"}
+                "scan": "investigation.local_scan", "core": "segmentation.workflow"}
     if len(sys.argv) == 1 or sys.argv[1] in {"-h", "--help"}:
         print("FluoInspect: fluorescence and autofluorescence QC\n"
-              "Usage: fluoinspect {measure,inspect,packet,deploy,region,coverage,scan} [options]\n"
+              "Usage: fluoinspect {measure,inspect,packet,deploy,region,coverage,scan,core} [options]\n"
               "  measure  Native intensity, detail, background, axial, brightness and optional alternating-band evidence\n"
               "  inspect  Create sessions, request views, audit or validate reports\n"
               "  packet   Prepare verified views and source-bound measurements\n"
               "  deploy   Plan node assignments or check local runtime configuration\n"
               "  region   Prepare an exact analysis crop and its parent-export mapping\n"
               "  coverage Plan systematic detail views and account for exported native area\n"
-              "  scan     Evaluate local dark regions and axial steps on all scheduled tiles; keep QC unverified")
+              "  scan     Evaluate local dark regions and axial steps on all scheduled tiles; keep QC unverified\n"
+              "  core     Propose core/tissue/background regions and attribute original-pixel evidence")
         return
     command = sys.argv[1]
     if command == "--version":

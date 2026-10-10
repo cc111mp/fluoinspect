@@ -3,6 +3,24 @@
 Software tests verify decoding, numerical behavior, coordinates and evidence
 binding. They do not establish detection accuracy on biological images.
 
+For core proposals, compare the intended target and outer envelope with reviewed
+native-coordinate boundaries, including dark gaps, fragmented tissue and partial
+neighbours. Coarse tissue support and geometric hulls are unreviewed proposals;
+shape plausibility alone cannot verify core identity. Check that internal dim/zero
+pixels remain in the outer envelope and that mask filling never modifies source
+intensities. Challenge ambiguous pairs, incomplete cores, large one-sided losses,
+elongated fragments and shadows. Preserve unresolved states instead of forcing
+a complete circular core.
+
+Compare region attribution using identical source-bound detector measurements
+before changing thresholds or tile anchors. Account for interior, boundary/mixed,
+nearby-background, neighbour and outside candidates. Exact area tests validate
+the recorded coarse-label mapping, not biological boundary accuracy. Whole-source
+detector coverage does not establish human/model inspection or artifact recall.
+Source/mask rechecks must reject changed pixels, geometry and forged review/QC
+claims. Existing expert image-level tags stay unchanged; localized correspondence
+requires separate review fields. A lower candidate count is not an accuracy result.
+
 Analysis-region receipts require retained receipt hashes, unchanged parent and
 child sources, exact native crop readback and a checked child-to-parent mapping.
 Rectangle envelopes retain internal dark values but do not establish biological

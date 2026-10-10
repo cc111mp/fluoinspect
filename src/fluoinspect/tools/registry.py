@@ -6,6 +6,8 @@ TOOL_SCOPES = {
     "systematic_detail_coverage": {"implemented": True, "scope": "bounded grid planning and exported-area union; does not establish model/human inspection"},
     "experimental_local_artifacts": {"implemented": True, "scope": "systematic tiles including unflagged areas; local dark-region and axial-step proposals checked in original pixels; cause/accuracy unvalidated"},
     "review_triage": {"implemented": True, "scope": "code-owned review routing; negative/unassessed screens remain unverified and no profile acceptance is assigned"},
+    "experimental_core_regions": {"implemented": True, "scope": "coarse traditional core proposals and separate tissue/background labels; retain internal dark values; core identity/boundary accuracy unvalidated"},
+    "core_candidate_attribution": {"implemented": True, "scope": "attribute unchanged native measurements to provisional regions; no source masking, defect localization gold or QC acceptance"},
     "sharp_axial_pattern_screen": {"implemented": True, "scope": "sharp horizontal/vertical candidates; AF accuracy unvalidated"},
     "supporting_intensity_background_detail": {"implemented": True, "scope": "measurements only; masks and quality interpretation unvalidated"},
     "experimental_brightness_patterns": {"implemented": True, "scope": "broad axis-profile variation and explicit-period repetition evidence; regions and artifact accuracy unvalidated"},
