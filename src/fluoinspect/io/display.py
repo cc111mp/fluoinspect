@@ -6,6 +6,8 @@ import numpy as np
 
 def histogram(native):
     """Count every native pixel, using bounded stripes and no overview sampling."""
+    if isinstance(native, np.ma.MaskedArray):
+        raise ValueError("Masked images cannot establish native pixel availability")
     array = np.asarray(native)
     if array.ndim != 2 or not array.size or array.dtype.kind != "u" or array.dtype.itemsize != 2:
         raise ValueError("A nonempty uint16 YX image is required")
@@ -16,6 +18,8 @@ def histogram(native):
 
 
 def _counts(counts):
+    if isinstance(counts, np.ma.MaskedArray):
+        raise ValueError("Masked histogram counts are unsupported")
     counts = np.asarray(counts)
     if (counts.shape != (65536,) or counts.dtype.kind not in "ui"
             or (counts < 0).any() or not counts.sum(dtype=np.uint64)):
@@ -64,6 +68,8 @@ def render(native, window, mode="linear"):
     The same native value maps to the same gray in every region using this window.
     Log is an explicit display option. Neither transfer function feeds a detector.
     """
+    if isinstance(native, np.ma.MaskedArray):
+        raise ValueError("Masked images cannot establish native pixel availability")
     low, high = validate_window(window)
     if mode not in {"linear", "log"}:
         raise ValueError("Display mode must be linear or log")

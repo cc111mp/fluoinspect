@@ -9,6 +9,10 @@ equal native values across views, and distinguish PNG rounding from native
 clipping. Session checks cover linear defaults, explicit log inspection, bright
 later crops, exact native readback and unchanged legacy preview hashes. These
 checks validate presentation behavior and preserve existing measurement inputs.
+Masked images and histogram counts are rejected rather than treated as complete
+native data. Source-folder output checks apply to both command-line and Python
+scan writers, including symlink aliases. Missing results for a declared brightness
+method are rejected; legacy records without that declaration retain explicit absence.
 
 For core proposals, compare the intended target and outer envelope with reviewed
 native-coordinate boundaries, including dark gaps, fragmented tissue and partial

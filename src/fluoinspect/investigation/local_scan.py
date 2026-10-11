@@ -46,7 +46,10 @@ def scan_image(source, *, config=None, target_box=None, modality="autofluorescen
 
 
 def write_scan(destination, result):
-    destination = Path(destination)
+    destination = Path(destination).resolve()
+    source = Path(result["source"]).resolve()
+    if destination.is_relative_to(source.parent) or source.is_relative_to(destination):
+        raise ValueError("Output must remain outside the source image directory")
     destination.mkdir(parents=True, exist_ok=False)
     atomic_json(destination / "local_scan.json", result)
     fields = ["tile_id", "bbox_level0_xyxy", "status", "proposal_native_pixels_per_cell",

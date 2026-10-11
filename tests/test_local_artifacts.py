@@ -11,7 +11,7 @@ import tifffile
 
 from fluoinspect.detectors.local import LocalConfig, measure_local_artifacts, validate_local_evidence
 from fluoinspect.investigation import session
-from fluoinspect.investigation.local_scan import scan_image
+from fluoinspect.investigation.local_scan import scan_image, write_scan
 from fluoinspect.investigation.triage import review_triage
 from fluoinspect.pipeline import measure_image
 from fluoinspect.tools.evidence import build_packet
@@ -23,6 +23,33 @@ def cfg(**options):
 
 def measure(values, **options):
     return measure_local_artifacts(values, config=cfg(**options))
+
+
+@pytest.mark.parametrize('via_symlink', [False, True])
+def test_scan_writer_rejects_outputs_in_source_tree_before_creating_files(tmp_path, via_symlink):
+    inputs = tmp_path / 'inputs'
+    inputs.mkdir()
+    source = inputs / 'synthetic.tif'
+    tifffile.imwrite(source, np.full((128, 128), 1000, np.uint16), photometric='minisblack')
+    before = session.sha(source)
+    result = scan_image(source)
+    if via_symlink:
+        link = tmp_path / 'input_link'
+        link.symlink_to(inputs, target_is_directory=True)
+        destination = link / 'qc_output'
+    else:
+        destination = inputs / 'qc_output'
+    with pytest.raises(ValueError, match='outside the source image directory'):
+        write_scan(destination, result)
+    assert not destination.exists() and session.sha(source) == before
+    assert list(inputs.iterdir()) == [source]
+
+
+@pytest.mark.parametrize('masked', [False, True])
+def test_masked_native_arrays_are_rejected_instead_of_marked_evaluated(masked):
+    pixels = np.ma.array(np.full((128, 128), 1000, np.uint16), mask=masked)
+    with pytest.raises(ValueError, match='native uint16'):
+        measure_local_artifacts(pixels)
 
 
 def test_isolated_dark_hole_is_localized_and_exact_zeros_are_preserved():

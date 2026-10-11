@@ -30,6 +30,10 @@ context; it never paints excluded pixels black before detection. Dedicated sourc
 mask and recomputed-geometry verification supports future tool integration.
 The core CLI produces JSON and review CSVs; biological boundary accuracy and
 agent consumption of this new evidence still require evaluation.
+Attribution engine v2 considers neighbour labels in both candidate and measurement
+context rectangles, and its revision participates in attributed run identities.
+Regenerate older attributed core outputs to verify them with this revision; use
+the independently hashed cached local scan to retain identical detector evidence.
 
 `investigation` stores bounded views and precise source mappings. Local ownership
 locks serialize writes, identified retries reuse committed views, and sealed

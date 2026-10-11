@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from .core import label_counts_in_box
 
+ENGINE_ID = "core_candidate_attribution_v2"
+
 
 def attribute_candidates(local, proposal, labels):
     shape = proposal["source_shape_yx"]
@@ -25,14 +27,15 @@ def attribute_candidates(local, proposal, labels):
         core_context = (surrounding["core_dim_or_space"] + surrounding["tissue_support"]) / context_area
         background = counts["nearby_background"] / area
         neighbour = counts["neighbour_guard"] / area
+        neighbour_context = surrounding["neighbour_guard"] / context_area
         if core == 1 and core_context == 1:
             scope = "core_interior"
         elif core > 0 or core_context > 0:
             scope = "core_boundary_or_mixed_context"
+        elif neighbour > 0 or neighbour_context > 0:
+            scope = "neighbour_or_mixed_context"
         elif background == 1:
             scope = "nearby_background"
-        elif neighbour > 0:
-            scope = "neighbour_or_mixed_context"
         else:
             scope = "outside_or_unassigned"
         attributed.append({"candidate_id": candidate["candidate_id"], "kind": candidate["kind"],
@@ -40,6 +43,7 @@ def attribute_candidates(local, proposal, labels):
                            "core_envelope_fraction": core, "core_context_fraction": core_context,
                            "tissue_support_fraction": counts["tissue_support"] / area,
                            "nearby_background_fraction": background, "neighbour_guard_fraction": neighbour,
+                           "neighbour_context_fraction": neighbour_context,
                            "native_log_contrast": candidate["native_log_contrast"],
                            "target_identity_status": proposal["target_identity_status"],
                            "artifact_cause_verified": False, "quality_decision": None})
@@ -50,7 +54,7 @@ def attribute_candidates(local, proposal, labels):
                    and coverage["detector_evaluated_area_fraction"] == 1)
     areas = proposal["label_areas_native_px"]
     regions_present = areas["core_dim_or_space"] + areas["tissue_support"] > 0 and areas["nearby_background"] > 0
-    return {"schema": "fluoinspect.core-candidate-attribution.v1",
+    return {"schema": "fluoinspect.core-candidate-attribution.v1", "engine_id": ENGINE_ID,
             "candidate_count": len(attributed), "candidates": attributed,
             "counts_by_scope": {scope: sum(row["scope"] == scope for row in attributed) for scope in scopes},
             "same_source_context_and_detector_lattice": True,

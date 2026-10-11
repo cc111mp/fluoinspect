@@ -76,6 +76,19 @@ def test_histogram_requires_valid_native_plane(values):
         display.histogram(values)
 
 
+@pytest.mark.parametrize('operation', ['histogram', 'render', 'percentile'])
+def test_masked_images_and_histograms_are_rejected(operation):
+    pixels = np.ma.array(np.full((8, 8), 100, np.uint16), mask=True)
+    with pytest.raises(ValueError, match='Masked'):
+        if operation == 'histogram':
+            display.histogram(pixels)
+        elif operation == 'render':
+            display.render(pixels, [0, 200])
+        else:
+            counts = np.ma.array(display.histogram(pixels.data), mask=True)
+            display.percentile(counts, 50)
+
+
 def test_renderer_accepts_native_unit_block_means_and_rejects_invalid_signal():
     means = np.array([[0., 4000.]], dtype=np.float32)
     assert display.render(means, [0, 8000]).tolist() == [[0, 128]]

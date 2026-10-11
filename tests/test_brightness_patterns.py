@@ -1,4 +1,5 @@
 """Known-pattern numerical challenges and interpretation/integrity boundaries."""
+import hashlib
 import json
 import subprocess
 import sys
@@ -229,8 +230,33 @@ def test_new_measurements_reach_bound_evidence_and_legacy_absence_is_explicit(tm
     assert packet["human_QC_decision"] == "" and not packet["verification"]["artifact_detection_accuracy_validated"]
     del record["brightness_patterns"]
     path.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match="Enabled brightness measurements are missing"):
+        build_packet(inspection, record=path, expected_record_sha256=session.sha(path))
+    # A legacy record does not declare the unavailable method in its configuration.
+    record["measurement_configuration"].pop("brightness_patterns")
+    configuration_sha = hashlib.sha256(json.dumps(record["measurement_configuration"], sort_keys=True,
+                                                  separators=(",", ":")).encode()).hexdigest()
+    record["measurement_configuration_sha256"] = configuration_sha
+    record["run_identity"] = hashlib.sha256((record["staging"]["file_sha256"] + ":" + record["modality"]
+                                            + ":" + configuration_sha).encode()).hexdigest()
+    path.write_text(json.dumps(record))
     legacy = build_packet(inspection, record=path, expected_record_sha256=session.sha(path))
     assert legacy["measurements"]["brightness_patterns"] is None
+
+
+def test_null_declared_brightness_result_is_rejected(tmp_path):
+    source_dir = tmp_path / "inputs"
+    source_dir.mkdir()
+    source = source_dir / "source.tif"
+    tifffile.imwrite(source, stripe_image(), photometric="minisblack")
+    inspection = tmp_path / "inspection"
+    session.create_session(source, inspection)
+    record = measure_image(source)
+    record["brightness_patterns"] = None
+    path = tmp_path / "measurements.json"
+    path.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match="Enabled brightness measurements are missing"):
+        build_packet(inspection, record=path, expected_record_sha256=session.sha(path))
 
 
 @pytest.mark.parametrize("bad_field,bad_value", [

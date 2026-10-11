@@ -140,6 +140,33 @@ def test_region_attribution_retains_same_detector_scores_and_neighbour_candidate
     assert attributed['quality_decision'] is None
 
 
+@pytest.mark.parametrize('context_crosses_neighbour', [False, True])
+def test_background_candidate_accounts_for_neighbour_in_measurement_context(context_crosses_neighbour):
+    labels = np.zeros((20, 20), np.uint8)
+    labels[:2, :2] = 1
+    labels[5:15, 1:10] = 3
+    labels[5:15, 10:19] = 4
+    proposal = {'source_shape_yx': [20, 20], 'native_pixels_per_label_cell': 1,
+                'target_identity_status': 'unreviewed',
+                'label_areas_native_px': label_counts_in_box(labels, 1, [20, 20], [0, 0, 20, 20])}
+    candidate = {'candidate_id': 'synthetic-001', 'kind': 'local_dark_region',
+                 'bbox_level0_xyxy': [3, 8, 6, 11],
+                 'context_bbox_level0_xyxy': [1, 5, 15 if context_crosses_neighbour else 10, 15],
+                 'native_log_contrast': .7}
+    local = {'source_shape_yx': [20, 20], 'target_region_level0_xyxy': [0, 0, 20, 20],
+             'coverage': {'detector_evaluated_area_fraction': 1}, 'candidates': [candidate]}
+    before = copy.deepcopy(local)
+    result = attribute_candidates(local, proposal, labels)
+    row = result['candidates'][0]
+    expected = 'neighbour_or_mixed_context' if context_crosses_neighbour else 'nearby_background'
+    assert row['scope'] == expected
+    assert row['neighbour_guard_fraction'] == 0 and row['nearby_background_fraction'] == 1
+    assert row['neighbour_context_fraction'] == pytest.approx(50 / 140 if context_crosses_neighbour else 0)
+    assert result['engine_id'] == 'core_candidate_attribution_v2'
+    assert row['native_log_contrast'] == candidate['native_log_contrast']
+    assert local == before and result['candidate_count'] == 1
+
+
 @pytest.mark.parametrize('budget', [0, 1])
 def test_incomplete_detector_coverage_does_not_imply_complete_region_inspection(budget):
     pixels, _, _ = fixture()

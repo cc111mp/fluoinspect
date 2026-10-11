@@ -65,8 +65,12 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
     elif record.get("measurement_configuration", {}).get("source_region") is not None:
         raise ValueError("Enabled source region lineage is missing")
     brightness = record.get("brightness_patterns")
+    brightness_methods = record.get("measurement_configuration", {}).get("brightness_patterns")
+    if brightness is None and brightness_methods is not None:
+        raise ValueError("Enabled brightness measurements are missing")
     if brightness is not None and (
         not isinstance(brightness, dict)
+        or not isinstance(brightness_methods, dict)
         or brightness.get("schema") != "fluoinspect.brightness-patterns.v1"
         or brightness.get("source_shape_yx") != info["shape_yx"]
         or brightness.get("source_region_level0_xyxy") != [0, 0, info["shape_yx"][1], info["shape_yx"][0]]
@@ -74,8 +78,8 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         or brightness.get("artifact_accuracy_validated") is not False
         or brightness.get("source_pixels_modified") is not False
         or brightness.get("quality_decision") is not None
-        or brightness.get("configuration") != record.get("measurement_configuration", {}).get("brightness_patterns", {}).get("configuration")
-        or brightness.get("engine_id") != record.get("measurement_configuration", {}).get("brightness_patterns", {}).get("engine_id")
+        or brightness.get("configuration") != brightness_methods.get("configuration")
+        or brightness.get("engine_id") != brightness_methods.get("engine_id")
     ):
         raise ValueError("Brightness measurement scope disagrees with the source or its interpretation")
     bands = record.get("alternating_bands")

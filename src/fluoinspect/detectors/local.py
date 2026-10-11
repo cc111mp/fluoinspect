@@ -212,7 +212,7 @@ def measure_local_artifacts(native, *, config=None, target_box=None):
     config = LocalConfig() if config is None else config
     if not isinstance(config, LocalConfig):
         raise ValueError("A LocalConfig is required")
-    if (not isinstance(native, np.ndarray) or native.ndim != 2
+    if (not isinstance(native, np.ndarray) or isinstance(native, np.ma.MaskedArray) or native.ndim != 2
             or native.dtype.kind != "u" or native.dtype.itemsize != 2):
         raise ValueError("Expected native uint16 YX pixels")
     target, total, boxes = tile_plan(native.shape, config, target_box)

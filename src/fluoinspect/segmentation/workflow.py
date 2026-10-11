@@ -12,7 +12,7 @@ import numpy as np
 import tifffile
 
 from .core import CoreConfig, LABELS, measure_region_intensity, propose_core
-from .analysis import attribute_candidates
+from .analysis import ENGINE_ID as ATTRIBUTION_ENGINE, attribute_candidates
 from ..detectors.local import LocalConfig, measure_local_artifacts, validate_local_evidence
 from ..investigation.session import artifact_path, fingerprint, native_hash, sha
 from ..investigation.triage import review_triage
@@ -82,6 +82,8 @@ def analyze_core(source, *, config=None, modality="autofluorescence", target_poi
                 "source_file_sha256": file_hash, "source_pixel_sha256": pixels_hash, "modality": modality,
                 "target_point_native_xy": proposal["target_point_native_xy"], "local_evidence": lineage,
                 "local_configuration": local["configuration"] if local is not None else None}
+    if attribution is not None:
+        identity["attribution_engine_id"] = ATTRIBUTION_ENGINE
     result = {"schema": "fluoinspect.core-regions.v1", "source": str(source), "modality": modality,
               "source_file_sha256": file_hash, "source_pixel_sha256": pixels_hash,
               "source_shape_yx": list(native.shape), "pixel_hash_byte_order": "little",
@@ -127,7 +129,8 @@ def write_core_result(destination, result, labels):
     if attributed is not None:
         fields = ["candidate_id", "kind", "bbox_level0_xyxy", "scope", "core_envelope_fraction",
                   "core_context_fraction", "tissue_support_fraction", "nearby_background_fraction",
-                  "neighbour_guard_fraction", "native_log_contrast", "target_identity_status", "quality_decision"]
+                  "neighbour_guard_fraction", "neighbour_context_fraction", "native_log_contrast",
+                  "target_identity_status", "quality_decision"]
         with (destination / "candidate_regions.csv").open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=fields)
             writer.writeheader()
@@ -194,8 +197,10 @@ def verify_core_result(path, *, expected_record_sha256):
                 "source_file_sha256": result["source_file_sha256"], "source_pixel_sha256": result["source_pixel_sha256"],
                 "modality": result["modality"], "target_point_native_xy": proposal["target_point_native_xy"],
                 "local_evidence": lineage, "local_configuration": local["configuration"] if local is not None else None}
+    if expected_attribution is not None:
+        identity["attribution_engine_id"] = ATTRIBUTION_ENGINE
     if result.get("run_identity") != hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest():
-        raise ValueError("Core run identity disagrees")
+        raise ValueError("Core run identity disagrees; regenerate legacy attributed records with the current engine")
     triage = review_triage(periodic_state="unverified", local_artifacts=local,
                            target_identity_status=proposal["target_identity_status"])
     triage["reasons"].append("core_boundary_not_reviewed")
