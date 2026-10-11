@@ -33,6 +33,12 @@
         "io/native.py",
         "detectors/axial.py"
       ]
+    },
+    {
+      "source_module": "display_scaling.py",
+      "source_sha256": "c6135f1864d49259434e00278f10fa30b6432390322b7e7e00a9956e875e419f",
+      "package_module": "io/display.py",
+      "adaptation": "Native histogram and shared linear/log display behavior; bounded stripe rendering and input validation."
     }
   ]
 }

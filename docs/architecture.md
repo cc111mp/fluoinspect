@@ -8,7 +8,32 @@ metadata and validated measurement profiles.
 The `io` module reads supported uint16 TIFF planes. `detectors` proposes sharp
 axial intensity patterns, while `measurements` returns descriptive statistics.
 `pipeline.measure_image` combines these without assigning image acceptance.
+`io.display` provides exact native histograms, shared linear/log display windows
+and original-pixel clipping counts. New investigation sessions freeze a native
+source-derived linear window; saved sessions retain their historical transfer.
+Presentation functions are independent of detector preprocessing and source
+values. Input provenance records must establish upstream correction and
+stitching history separately from decoding and source integrity.
+The experimental brightness module records broad axis-profile extrema and
+repetition at an explicitly supplied native-pixel period. It returns source
+geometry, region/sampling eligibility and alternative-period comparisons without
+assigning a causal artifact class. Its settings participate in the run identity,
+and source-bound evidence packets retain the measurements or explicit absence for
+legacy records. Context strips describe profile extrema, not confirmed seams.
 Modality labels do not change or validate the development detector thresholds.
+
+`segmentation` proposes coarse core envelopes, separate intensity-derived tissue
+support and nearby background excluding provisional neighbours. It retains source
+values, explicit native-cell mappings and unreviewed/unresolved identity. Optional
+local candidate attribution uses unchanged source-bound measurements and tile
+context; it never paints excluded pixels black before detection. Dedicated source,
+mask and recomputed-geometry verification supports future tool integration.
+The core CLI produces JSON and review CSVs; biological boundary accuracy and
+agent consumption of this new evidence still require evaluation.
+Attribution engine v2 considers neighbour labels in both candidate and measurement
+context rectangles, and its revision participates in attributed run identities.
+Regenerate older attributed core outputs to verify them with this revision; use
+the independently hashed cached local scan to retain identical detector evidence.
 
 `investigation` stores bounded views and precise source mappings. Local ownership
 locks serialize writes, identified retries reuse committed views, and sealed

@@ -22,9 +22,10 @@ import tifffile
 
 from ..io.native import read_native
 from ..io.persistence import DEFAULT_BUDGET, atomic_json, fsync_directory
+from ..io import display
 
 SCHEMA = "af-qc.zoom-session.v1"
-ENGINE_REVISION = "zoom-tools-robust-v2"
+ENGINE_REVISION = "zoom-tools-linear-display-v3"
 FINDING_TYPES = {
     "parallel_bands", "seam_or_gap", "duplicate_structure", "background_shading",
     "clipping_concern", "blur_concern", "core_export_concern", "other",
@@ -126,7 +127,8 @@ def _load(session):
 
 
 def create_session(source, destination, *, expected_sha256=None, display_high=None,
-                   label=None, budget=None, deployment=None, modality="autofluorescence"):
+                   display_mode="linear", label=None, budget=None, deployment=None,
+                   modality="autofluorescence"):
     if modality not in {"autofluorescence", "fluorescence"}:
         raise ValueError("Modality must be autofluorescence or fluorescence")
     source = Path(source).resolve()
@@ -150,11 +152,14 @@ def create_session(source, destination, *, expected_sha256=None, display_high=No
     if not (2 <= actual_budget["max_views"] <= 64 and 64 <= actual_budget["max_display_dimension"] <= 2048
             and actual_budget["max_raw_crop_pixels"] <= 16 * 1024 * 1024):
         raise ValueError("Review budget exceeds bounded limits")
+    if display_mode not in {"linear", "log"}:
+        raise ValueError("Display mode must be linear or log")
+    window_method = "native_p99.9" if display_high is None else "explicit_native_units"
     if display_high is None:
-        overview = block_mean(native, max(1, math.ceil(max(native.shape) / 1024)))
-        display_high = max(float(np.percentile(overview, 99.5)), 1.0)
-    if not isinstance(display_high, (int, float)) or not np.isfinite(display_high) or display_high <= 0:
-        raise ValueError("Display high must be finite and positive")
+        display_high = display.shared_window([display.histogram(native)])[1]
+    if not isinstance(display_high, (int, float)):
+        raise ValueError("Display high must be a number in stored uint16 units")
+    display.validate_window([0, display_high])
     destination.mkdir(parents=True, mode=0o700)
     (destination / "views").mkdir(mode=0o700)
     info = {"schema": SCHEMA, "engine_revision": ENGINE_REVISION, "state": "active",
@@ -163,7 +168,8 @@ def create_session(source, destination, *, expected_sha256=None, display_high=No
             "decoded_pixel_sha256": native_hash(native),
             "pixel_hash_byte_order": "little",
             "shape_yx": list(native.shape), "coordinate_system": "level-0 XY pixels; arrays YX",
-            "display_window": {"low": 0, "high": float(display_high), "gamma_power": 0.5},
+            "display_window": {"low": 0, "high": float(display_high), "mode": display_mode,
+                               "method": window_method, "scope": "fixed for all session views"},
             "budget": actual_budget, "views": [], "human_QC_decision": "",
             "review_status": "unreviewed; assistant evidence is unvalidated",
             "physical_core_identity": None, "core_boundary_validated": False,
@@ -175,7 +181,8 @@ def create_session(source, destination, *, expected_sha256=None, display_high=No
                         purpose="whole-export overview", kind="context")
 
 
-def create_assigned_session(plan, profile, asset_id, destination, *, display_high=None, label=None, modality="autofluorescence"):
+def create_assigned_session(plan, profile, asset_id, destination, *, display_high=None,
+                            display_mode="linear", label=None, modality="autofluorescence"):
     """Create from this node's verified local cache; never stage or contact a model."""
     from ..deployment.plan import json_hash, preflight, validate_plan, validate_profile
 
@@ -205,7 +212,8 @@ def create_assigned_session(plan, profile, asset_id, destination, *, display_hig
                "source_relative_path": job["relative_path"], "profile_sha256": json_hash(profile),
                "inference_settings": dict(profile["inference"]), "inference_executed": False}
     return create_session(source, destination, expected_sha256=job["source_file_sha256"],
-                          display_high=display_high, label=label, budget=profile["review_budget"],
+                          display_high=display_high, display_mode=display_mode,
+                          label=label, budget=profile["review_budget"],
                           deployment=receipt, modality=modality)
 
 
@@ -274,7 +282,15 @@ def _request_view(session, bbox, *, purpose, kind, parent_view_id, coordinates, 
     step = max(1, math.ceil(max(crop.shape) / maximum))
     means = block_mean(crop, step)
     window = info["display_window"]
-    pixels = (np.clip(means / window["high"], 0, 1) ** window["gamma_power"] * 255).astype(np.uint8)
+    if "mode" in window:
+        pixels = display.render(means, [window["low"], window["high"]], window["mode"])
+    else:
+        # Preserve the exact historical transfer function for saved v1 sessions.
+        pixels = (np.clip(means / window["high"], 0, 1) ** window["gamma_power"] * 255).astype(np.uint8)
+    # Older sessions allowed an explicit white limit above the uint16 ceiling.
+    # No uint16 pixel exceeds either that limit or 65535; preserve their mapping.
+    clipping_window = [window["low"], min(window["high"], 65535)]
+    display_clipping = display.clipping(display.histogram(crop), clipping_window)
     # An interrupted unregistered export is never overwritten or reused silently.
     # Only paths committed in session.json count as review evidence.
     artifact_id = view_id + "-" + uuid.uuid4().hex[:12]
@@ -302,6 +318,7 @@ def _request_view(session, bbox, *, purpose, kind, parent_view_id, coordinates, 
             "preview_shape_yx": list(pixels.shape), "native_pixels_per_preview_pixel": step,
             "mapping": "Preview cells map to clipped native blocks beginning at bbox origin",
             "display_window": dict(window), "png": str(png.relative_to(session)), "png_sha256": sha(png),
+            "display_clipping_native_pixels": display_clipping,
             "raw_tiff": str(raw.relative_to(session)) if raw else None, "raw_tiff_sha256": sha(raw) if raw else None,
             "all_raw_crop_pixels_equal_source": True if raw else None,
             "pixel_count_raw_rectangle": int(crop.size), "source_pixel_values_modified": False}
@@ -406,6 +423,7 @@ def main():
     create.add_argument("--output", required=True, type=Path)
     create.add_argument("--expected-sha256")
     create.add_argument("--display-high", type=float)
+    create.add_argument("--display-mode", choices=["linear", "log"], default="linear")
     create.add_argument("--label")
     create.add_argument("--modality", choices=["autofluorescence", "fluorescence"], default="autofluorescence")
     assigned = sub.add_parser("create-assigned")
@@ -414,6 +432,7 @@ def main():
     assigned.add_argument("--asset-id", required=True)
     assigned.add_argument("--output", required=True, type=Path)
     assigned.add_argument("--display-high", type=float)
+    assigned.add_argument("--display-mode", choices=["linear", "log"], default="linear")
     assigned.add_argument("--label")
     assigned.add_argument("--modality", choices=["autofluorescence", "fluorescence"], default="autofluorescence")
     view = sub.add_parser("view")
@@ -432,10 +451,12 @@ def main():
     args = parser.parse_args()
     if args.command == "create":
         result = create_session(args.source, args.output, expected_sha256=args.expected_sha256,
-                                display_high=args.display_high, label=args.label, modality=args.modality)
+                                display_high=args.display_high, display_mode=args.display_mode,
+                                label=args.label, modality=args.modality)
     elif args.command == "create-assigned":
         result = create_assigned_session(json.loads(args.plan.read_text()), json.loads(args.profile.read_text()),
-                                          args.asset_id, args.output, display_high=args.display_high, label=args.label, modality=args.modality)
+                                          args.asset_id, args.output, display_high=args.display_high,
+                                          display_mode=args.display_mode, label=args.label, modality=args.modality)
     elif args.command == "view":
         result = request_view(args.session, args.bbox, purpose=args.purpose, kind=args.kind,
                               parent_view_id=args.parent_view_id, coordinates=args.coordinates,

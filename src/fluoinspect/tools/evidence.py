@@ -15,6 +15,10 @@ import numpy as np
 from PIL import Image
 
 from ..investigation import session as zoom
+from ..investigation.coverage import summarize_views
+from ..investigation.regions import verify_region
+from ..investigation.triage import review_triage
+from ..detectors.local import validate_local_evidence
 from ..io.persistence import atomic_json
 
 from ..agents.prompts import ROLE_BRIEFS
@@ -41,6 +45,102 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
     metrics = record["metrics"]
     if metrics.get("source_shape_yx") != info["shape_yx"]:
         raise ValueError("Metric geometry disagrees with the source")
+    lineage = record.get("source_region_lineage")
+    if lineage is not None:
+        if not isinstance(lineage, dict):
+            raise ValueError("Invalid source region lineage")
+        receipt, child = verify_region(lineage.get("receipt_path"),
+                                       expected_receipt_sha256=lineage.get("receipt_sha256"))
+        if (child != Path(info["source"]).resolve()
+                or receipt["child_file_sha256"] != info["source_file_sha256"]
+                or receipt["child_pixel_sha256"] != pixel_sha256
+                or receipt["modality"] != info.get("modality")
+                or lineage.get("region_identity_reviewed") is not False
+                or lineage.get("parent_crop_mapping_verified") is not True
+                or any(lineage.get(k) != receipt[k] for k in ("parent_source", "parent_file_sha256",
+                           "parent_pixel_sha256", "parent_shape_yx", "bbox_parent_level0_xyxy", "coordinate_mapping", "target_identity_status"))
+                or record.get("measurement_configuration", {}).get("source_region") != {
+                    k: lineage[k] for k in ("receipt_sha256", "parent_file_sha256", "parent_pixel_sha256", "bbox_parent_level0_xyxy", "target_identity_status")}):
+            raise ValueError("Region lineage disagrees with the source or configuration")
+    elif record.get("measurement_configuration", {}).get("source_region") is not None:
+        raise ValueError("Enabled source region lineage is missing")
+    brightness = record.get("brightness_patterns")
+    brightness_methods = record.get("measurement_configuration", {}).get("brightness_patterns")
+    if brightness is None and brightness_methods is not None:
+        raise ValueError("Enabled brightness measurements are missing")
+    if brightness is not None and (
+        not isinstance(brightness, dict)
+        or not isinstance(brightness_methods, dict)
+        or brightness.get("schema") != "fluoinspect.brightness-patterns.v1"
+        or brightness.get("source_shape_yx") != info["shape_yx"]
+        or brightness.get("source_region_level0_xyxy") != [0, 0, info["shape_yx"][1], info["shape_yx"][0]]
+        or brightness.get("assessment") != "experimental_measurements_only"
+        or brightness.get("artifact_accuracy_validated") is not False
+        or brightness.get("source_pixels_modified") is not False
+        or brightness.get("quality_decision") is not None
+        or brightness.get("configuration") != brightness_methods.get("configuration")
+        or brightness.get("engine_id") != brightness_methods.get("engine_id")
+    ):
+        raise ValueError("Brightness measurement scope disagrees with the source or its interpretation")
+    bands = record.get("alternating_bands")
+    if bands is None and record.get("measurement_configuration", {}).get("alternating_bands") is not None:
+        raise ValueError("Enabled alternating-band measurements are missing")
+    if bands is not None:
+        methods = record.get("measurement_configuration", {}).get("alternating_bands", {})
+        if (not isinstance(bands, dict) or bands.get("schema") != "fluoinspect.alternating-bands.v1"
+                or bands.get("source_shape_yx") != info["shape_yx"]
+                or bands.get("assessment") != "experimental_measurements_only"
+                or bands.get("artifact_accuracy_validated") is not False
+                or bands.get("source_pixels_modified") is not False
+                or bands.get("region_identity_reviewed") is not False
+                or bands.get("dark_pixels_retained") is not True
+                or bands.get("quality_decision") is not None
+                or bands.get("configuration") != methods.get("configuration")
+                or bands.get("engine_id") != methods.get("engine_id")):
+            raise ValueError("Alternating-band measurement scope or interpretation disagrees")
+        region = zoom.validate_box(bands.get("source_region_level0_xyxy"), info["shape_yx"])
+        expected_region = methods.get("configuration", {}).get("region_xyxy") or [0, 0, info["shape_yx"][1], info["shape_yx"][0]]
+        if list(region) != list(expected_region):
+            raise ValueError("Alternating-band region disagrees with its recorded configuration")
+        candidates = bands.get("native_verified_bands")
+        pairs = bands.get("parallel_alternating_pairs")
+        straight_pairs = bands.get("straight_edged_alternating_pairs", [])
+        if (not isinstance(candidates, list) or any(not isinstance(c, dict) for c in candidates)
+                or not isinstance(pairs, list) or not isinstance(straight_pairs, list)):
+            raise ValueError("Invalid alternating-band evidence collections")
+        ids = [c.get("candidate_id") for c in candidates]
+        if any(not isinstance(v, str) or not v for v in ids) or len(ids) != len(set(ids)):
+            raise ValueError("Invalid alternating-band candidate identifiers")
+        for candidate in candidates:
+            context = zoom.validate_box(candidate.get("context_bbox_level0_xyxy"), info["shape_yx"])
+            if (candidate.get("status") != "native_verified_pattern"
+                    or candidate.get("native_sampling_method") != "nearest_original_pixels"
+                    or context[0] < region[0] or context[1] < region[1]
+                    or context[2] > region[2] or context[3] > region[3]):
+                raise ValueError("Alternating-band candidate context disagrees with the source region")
+        if any(not isinstance(p, dict) or len(p.get("band_ids", [])) != 2
+               or p["band_ids"][0] == p["band_ids"][1]
+               or any(v not in ids for v in p["band_ids"]) for p in pairs + straight_pairs):
+            raise ValueError("Alternating-band pair references unknown candidates")
+        straight_ids = {c["candidate_id"] for c in candidates
+                        if c.get("dark_edge_geometry", {}).get("straight_edged_loss_pattern") is True}
+        if any(any(v not in straight_ids for v in pair["band_ids"]) for pair in straight_pairs):
+            raise ValueError("Straight-edge pair lacks the recorded edge measurements")
+    local = record.get("local_artifacts")
+    local_methods = record.get("measurement_configuration", {}).get("local_artifacts")
+    if local is None and local_methods is not None:
+        raise ValueError("Enabled local artifact measurements are missing")
+    if local is not None:
+        validate_local_evidence(local, info["shape_yx"], local_methods or {})
+        if local["target_region_level0_xyxy"] != [0, 0, info["shape_yx"][1], info["shape_yx"][0]]:
+            raise ValueError("Pipeline local target disagrees")
+    triage = record.get("review_triage")
+    if triage is not None and triage != review_triage(
+            periodic_state="unverified", local_artifacts=local,
+            target_identity_status=lineage["target_identity_status"] if lineage else "unreviewed"):
+        raise ValueError("Review triage disagrees with code-owned policy")
+    if local is not None and triage is None:
+        raise ValueError("Local measurements require pending review triage")
     return {
         "record_sha256": checksum, "asset_id": record["asset_id"], "run_identity": record["run_identity"],
         "measurement_configuration": record.get("measurement_configuration"),
@@ -51,6 +151,10 @@ def _bind_record(path, expected_sha256, info, pixel_sha256):
         "largest_same_position_support": max((v["exact_rows"] for v in record["lines"]), default=0),
         "raw": metrics["raw"], "relative_detail": metrics["detail_summary"],
         "background_summary": {k: v for k, v in metrics["background"].items() if k != "cells"},
+        "brightness_patterns": brightness,
+        "alternating_bands": bands,
+        "local_artifacts": local, "review_triage": triage,
+        "source_region_lineage": lineage,
         "caveats": metrics["caveats"], "artifact_detection_accuracy_validated": False,
     }
 
@@ -113,8 +217,7 @@ def build_packet(session, *, record=None, expected_record_sha256=None):
                              "native_crops_checked": any(v["native_tiff"] for v in views),
                              "native_crop_count": sum(v["native_tiff"] is not None for v in views),
                              "artifact_detection_accuracy_validated": False},
-            "coverage": {"view_count": len(views), "full_resolution_image_inspection_established": False,
-                         "note": "Exported crops and their resolution are logged; model inspection is not established."},
+            "coverage": summarize_views(info["shape_yx"], views),
             "unassessed_checks": ["Calibrated artifact detection", "Geometric acquisition-overlap verification",
                                   "Before/after background correction", "Calibrated field homogeneity and focus"],
             "model_adapter_implemented": False, "model_inference_executed": False,
