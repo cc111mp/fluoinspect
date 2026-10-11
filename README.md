@@ -21,6 +21,7 @@ interface exist; automated model inference and orchestration remain planned.
 | Alternating bands | Opt-in oriented dark-band and parallel-pair measurements, sampled original-pixel checks and straight-edge/zero-pixel descriptors; no quality labels |
 | Axial screening | Sharp horizontal/vertical intensity-pattern candidates; not causal stitching labels |
 | Investigation | Overview, context, detail and unlabelled comparison views with source coordinates |
+| Display | Shared linear windows from native intensities, explicit optional log display and original-pixel clipping percentages |
 | Analysis regions | Exact native rectangle crops, checked parent mapping and opt-in envelope measurements retaining dim/zero pixels; core identity remains unreviewed |
 | Coverage | Bounded systematic detail plans and exact unions of exported native/preview areas; inspection remains unestablished |
 | Local artifact observations | Systematic tile evaluation of dark regions and abrupt axial steps, including unflagged areas; original-pixel rectangle checks and an evaluated-footprint ledger |
@@ -35,6 +36,11 @@ Autofluorescence and labelled fluorescence can share the numerical tools while
 requiring different assay interpretation. Record `--modality` explicitly. Tissue
 brightness and empty regions do not independently establish an artifact. A zero
 candidate count does not establish acceptable quality.
+
+Input TIFFs may be camera acquisitions or processed exports. FluoInspect preserves
+the supplied values; decoding and hashing do not establish their upstream history.
+Record correction software/settings, calibration references and original tile
+positions separately when available. See [input provenance](docs/input-provenance.md).
 
 ### Core, tissue support and surrounding background
 
@@ -135,6 +141,18 @@ sample or a validation of stitching classification. The packet command above has
 no cached measurement input, so its measurements remain explicitly absent. To
 bind an existing record, supply `--record` and its independently retained expected
 SHA-256 with `--expected-record-sha256`.
+
+New investigation sessions use **linear previews with one fixed window across all
+views**. Black is zero; automatic white is the native source's 99.9th percentile,
+rounded up, with a minimum of one. Preview averaging does not choose that window.
+Each view records original-pixel percentages below/above the limits. A bright
+later crop may exceed the source-derived white limit: inspect its exact native
+TIFF or create a fresh session with an explicit `--display-high`. Use
+`--display-mode log` explicitly for faint-background inspection. Saved older
+sessions retain their recorded gamma mapping. These controls affect presentation;
+detector measurements continue to use the source values.
+See [review display](docs/review-display.md) and the
+[development workflow](docs/development-workflow.md).
 
 Runtime images, model credentials and outputs belong outside Git history. The
 repository ships synthetic generators and tests; no study images or run records

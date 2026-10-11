@@ -8,6 +8,12 @@ metadata and validated measurement profiles.
 The `io` module reads supported uint16 TIFF planes. `detectors` proposes sharp
 axial intensity patterns, while `measurements` returns descriptive statistics.
 `pipeline.measure_image` combines these without assigning image acceptance.
+`io.display` provides exact native histograms, shared linear/log display windows
+and original-pixel clipping counts. New investigation sessions freeze a native
+source-derived linear window; saved sessions retain their historical transfer.
+Presentation functions are independent of detector preprocessing and source
+values. Input provenance records must establish upstream correction and
+stitching history separately from decoding and source integrity.
 The experimental brightness module records broad axis-profile extrema and
 repetition at an explicitly supplied native-pixel period. It returns source
 geometry, region/sampling eligibility and alternative-period comparisons without

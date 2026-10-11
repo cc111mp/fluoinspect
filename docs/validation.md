@@ -3,6 +3,13 @@
 Software tests verify decoding, numerical behavior, coordinates and evidence
 binding. They do not establish detection accuracy on biological images.
 
+Display checks compare native histogram percentiles with direct population
+percentiles, protect known bright crops in shared panels, verify equal gray for
+equal native values across views, and distinguish PNG rounding from native
+clipping. Session checks cover linear defaults, explicit log inspection, bright
+later crops, exact native readback and unchanged legacy preview hashes. These
+checks validate presentation behavior and preserve existing measurement inputs.
+
 For core proposals, compare the intended target and outer envelope with reviewed
 native-coordinate boundaries, including dark gaps, fragmented tissue and partial
 neighbours. Coarse tissue support and geometric hulls are unreviewed proposals;
